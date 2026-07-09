@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional
 
-from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TimestampMixin
@@ -14,6 +15,7 @@ class Project(IdMixin, TimestampMixin, Base):
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
@@ -25,3 +27,31 @@ class ProjectGuest(IdMixin, TimestampMixin, Base):
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+
+
+class Epic(IdMixin, TimestampMixin, Base):
+    __tablename__ = "epics"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    deadline: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class Card(IdMixin, TimestampMixin, Base):
+    __tablename__ = "cards"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('backlog', 'todo', 'in_progress', 'done')",
+            name="ck_cards_status",
+        ),
+    )
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True, nullable=False)
+    epic_id: Mapped[Optional[int]] = mapped_column(ForeignKey("epics.id"), index=True, nullable=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="backlog", nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
